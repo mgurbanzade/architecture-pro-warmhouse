@@ -1,0 +1,196 @@
+openapi: 3.0.3
+info:
+  title: Device Service — REST API
+  version: 1.0.0
+  description: |
+    Smart home device registry, self-service device onboarding and device commands
+    (heating, lighting, gates, partner devices). Commands are executed asynchronously: the API accepts
+    a command (202) and hands it to the Device Gateway; the result arrives as a `devices.command-results`
+    event (see AsyncAPI) and is reflected in the device state.
+servers:
+  - url: https://api.warmhouse.example/devices/v1
+security:
+  - bearerAuth: []
+
+paths:
+  /device-types:
+    get:
+      summary: Supported device types and their commands
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/DeviceType' }
+
+  /devices:
+    get:
+      summary: House devices with their current state
+      parameters:
+        - { name: houseId, in: query, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Device' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      summary: Connect a device
+      description: The user enters the serial number and type from the kit; the service binds the device to the house and waits for it to come online through the gateway.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RegisterDeviceRequest' }
+      responses:
+        '201':
+          description: Device registered
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Device' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '409':
+          description: A device with this serial number is already connected
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /devices/{deviceId}:
+    parameters:
+      - $ref: '#/components/parameters/deviceId'
+    get:
+      summary: Device with its current state
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Device' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      summary: Disconnect the device
+      responses:
+        '204': { description: Device deleted }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /devices/{deviceId}/commands:
+    parameters:
+      - $ref: '#/components/parameters/deviceId'
+    post:
+      summary: Send a command to the device
+      description: The command is validated against the device type capabilities and handed to the gateway.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CommandRequest' }
+      responses:
+        '202':
+          description: Command accepted for execution
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Command' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422':
+          description: The device type does not support this command
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    deviceId:
+      name: deviceId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Forbidden:
+      description: No access to the house
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    NotFound:
+      description: Device not found
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+  schemas:
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code: { type: string }
+        message: { type: string }
+    DeviceType:
+      type: object
+      required: [code, name, protocol, capabilities]
+      properties:
+        code: { type: string, example: heating }
+        name: { type: string, example: Heating module }
+        protocol: { type: string, example: mqtt }
+        capabilities:
+          type: array
+          description: Commands supported by the type
+          items: { type: string }
+          example: [turn_on, turn_off]
+    Device:
+      type: object
+      required: [id, houseId, typeCode, name, serialNumber, status]
+      properties:
+        id: { type: string, format: uuid }
+        houseId: { type: string, format: uuid }
+        roomId: { type: string, format: uuid, nullable: true }
+        typeCode: { type: string, example: heating }
+        name: { type: string, example: Living room heating }
+        serialNumber: { type: string, example: WH-HEAT-000123 }
+        status: { type: string, enum: [offline, online, error], description: Connectivity status from gateway events }
+        state:
+          type: object
+          additionalProperties: true
+          description: Last known device state
+          example: { power: "on" }
+        lastSeenAt: { type: string, format: date-time, nullable: true }
+    RegisterDeviceRequest:
+      type: object
+      required: [houseId, typeCode, serialNumber, name]
+      properties:
+        houseId: { type: string, format: uuid }
+        roomId: { type: string, format: uuid }
+        typeCode: { type: string, example: heating }
+        serialNumber: { type: string, example: WH-HEAT-000123 }
+        name: { type: string, example: Living room heating }
+    CommandRequest:
+      type: object
+      required: [type]
+      properties:
+        type: { type: string, example: turn_on }
+        payload:
+          type: object
+          additionalProperties: true
+          description: Command parameters, if the type requires them
+    Command:
+      type: object
+      required: [id, deviceId, type, status, issuedAt]
+      properties:
+        id: { type: string, format: uuid }
+        deviceId: { type: string, format: uuid }
+        type: { type: string, example: turn_on }
+        status: { type: string, enum: [pending, sent, done, failed] }
+        issuedBy: { type: string, enum: [user, scenario] }
+        issuedAt: { type: string, format: date-time }

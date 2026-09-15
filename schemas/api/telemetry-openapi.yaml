@@ -1,0 +1,130 @@
+openapi: 3.0.3
+info:
+  title: Telemetry Service — REST API
+  version: 1.0.0
+  description: |
+    Latest values, history and aggregates of device measurements.
+    Measurements enter the service only from the broker (`telemetry.measurements` channel, see AsyncAPI) —
+    they are published by the Device Gateway after protocol parsing and normalization; there is no HTTP intake.
+servers:
+  - url: https://api.warmhouse.example/telemetry/v1
+security:
+  - bearerAuth: []
+tags:
+  - name: telemetry
+
+paths:
+  /telemetry/{deviceId}/latest:
+    parameters:
+      - $ref: '#/components/parameters/deviceId'
+    get:
+      tags: [telemetry]
+      summary: Latest device measurements per metric
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Measurement' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /telemetry/{deviceId}:
+    parameters:
+      - $ref: '#/components/parameters/deviceId'
+    get:
+      tags: [telemetry]
+      summary: Measurement history for a period
+      parameters:
+        - { name: metric, in: query, required: true, schema: { type: string, example: temperature } }
+        - { name: from, in: query, required: true, schema: { type: string, format: date-time } }
+        - { name: to, in: query, required: true, schema: { type: string, format: date-time } }
+        - { name: limit, in: query, schema: { type: integer, default: 1000, maximum: 10000 } }
+        - { name: cursor, in: query, description: Next page cursor from the previous response, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MeasurementPage' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /telemetry/{deviceId}/aggregate:
+    parameters:
+      - $ref: '#/components/parameters/deviceId'
+    get:
+      tags: [telemetry]
+      summary: Measurement aggregates (min/max/avg) by hour or day
+      parameters:
+        - { name: metric, in: query, required: true, schema: { type: string, example: temperature } }
+        - { name: period, in: query, required: true, schema: { type: string, enum: [hour, day] } }
+        - { name: from, in: query, required: true, schema: { type: string, format: date-time } }
+        - { name: to, in: query, required: true, schema: { type: string, format: date-time } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Aggregate' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    deviceId:
+      name: deviceId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    NotFound:
+      description: Device or measurements not found
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+  schemas:
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code: { type: string }
+        message: { type: string }
+    Measurement:
+      type: object
+      required: [deviceId, metric, value, unit, measuredAt]
+      properties:
+        deviceId: { type: string, format: uuid }
+        metric: { type: string, example: temperature }
+        value: { type: number, format: double, example: 21.4 }
+        unit: { type: string, example: "°C" }
+        measuredAt: { type: string, format: date-time }
+    MeasurementPage:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/Measurement' }
+        nextCursor: { type: string, nullable: true }
+    Aggregate:
+      type: object
+      required: [periodStart, min, max, avg, count]
+      properties:
+        periodStart: { type: string, format: date-time }
+        min: { type: number, format: double }
+        max: { type: number, format: double }
+        avg: { type: number, format: double }
+        count: { type: integer }

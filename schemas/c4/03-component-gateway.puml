@@ -1,0 +1,37 @@
+@startuml 03-component-gateway
+!include <C4/C4_Component>
+
+title Component Diagram — Device Gateway
+
+System_Ext(device, "Device", "Sensors, relays, cameras, partner devices")
+Container(devices, "Device Service", "Java, Spring Boot")
+ContainerQueue(broker, "Message Broker", "Kafka")
+
+Container_Boundary(gw, "Device Gateway") {
+  Component(mqtt, "MQTT Transport", "Embedded MQTT broker", "Accepts device connections and messages, sends outbound messages to devices. Does not parse the format.")
+  Component(partner, "Partner HTTP Transport", "Go, HTTP server and client", "Accepts partner device messages over HTTP, sends outbound messages via the partner API. Does not parse the format.")
+  Component(auth, "Device Authentication", "Go", "Verifies the device serial number and token via the Device Service on connect, caches the result.")
+  Component(adapters, "Protocol Adapters", "Strategy: MQTT, partner HTTP, …", "The only component that knows the protocol format: parses inbound messages, builds outbound ones; a new protocol is a new adapter.")
+  Component(normalizer, "Telemetry Normalizer", "Go", "Converts measurements and statuses to the common format: metric, value, unit, time.")
+  Component(publisher, "Event Publisher", "Kafka Producer", "Publishes measurements, statuses and command results to the broker.")
+  Component(cmd, "Command Dispatcher", "Go", "Accepts commands from the Device Service, picks an adapter, tracks acknowledgement.")
+}
+
+Rel(device, mqtt, "Telemetry and statuses, receives commands", "MQTT")
+Rel(device, partner, "Telemetry, receives commands", "HTTP")
+Rel(mqtt, auth, "Verification on connect")
+Rel(partner, auth, "Verification on connect")
+Rel(auth, devices, "Verifies device", "REST / JSON")
+Rel(mqtt, adapters, "Raw messages")
+Rel(partner, adapters, "Raw messages")
+Rel(adapters, normalizer, "Parsed data")
+Rel(normalizer, publisher, "Normalized events")
+Rel(publisher, broker, "Publishes", "Kafka")
+Rel(devices, cmd, "Device commands", "REST / JSON")
+Rel(cmd, adapters, "Builds the command")
+Rel(adapters, mqtt, "Outbound messages")
+Rel(adapters, partner, "Outbound messages")
+Rel(cmd, publisher, "Command results")
+
+SHOW_LEGEND()
+@enduml

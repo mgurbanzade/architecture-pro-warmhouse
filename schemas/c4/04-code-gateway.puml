@@ -1,0 +1,139 @@
+@startuml 04-code-gateway
+title Code Diagram — Device Gateway: protocol adapters and telemetry normalization
+skinparam classAttributeIconSize 0
+hide empty members
+
+enum MessageKind {
+  TELEMETRY
+  STATUS
+  COMMAND_RESULT
+}
+
+class RawMessage {
+  +deviceSerial: String
+  +protocol: String
+  +topic: String
+  +payload: byte[]
+  +receivedAt: Instant
+}
+
+class Reading {
+  +metric: String
+  +value: double
+  +unit: String
+}
+
+class DeviceMessage {
+  +deviceSerial: String
+  +kind: MessageKind
+  +readings: List<Reading>
+  +status: String
+  +commandId: UUID
+  +at: Instant
+}
+
+class Command {
+  +id: UUID
+  +deviceId: UUID
+  +deviceSerial: String
+  +type: String
+  +payload: Map<String, Object>
+}
+
+class OutboundMessage {
+  +destination: String
+  +payload: byte[]
+}
+
+interface ProtocolAdapter {
+  +protocol(): String
+  +parse(raw: RawMessage): DeviceMessage
+  +buildCommand(cmd: Command): OutboundMessage
+}
+class MqttAdapter
+class PartnerHttpAdapter
+
+class AdapterRegistry {
+  +register(adapter: ProtocolAdapter)
+  +forProtocol(protocol: String): ProtocolAdapter
+}
+
+class DeviceContext {
+  +deviceId: UUID
+  +houseId: UUID
+  +serial: String
+  +protocol: String
+}
+
+class DeviceAuthenticator {
+  -registryUrl: String
+  -cache: Map<String, DeviceContext>
+  +authenticate(serial: String, token: String): DeviceContext
+}
+
+class Measurement {
+  +eventId: UUID
+  +deviceId: UUID
+  +houseId: UUID
+  +metric: String
+  +value: double
+  +unit: String
+  +measuredAt: Instant
+}
+
+class DeviceStatusChanged {
+  +eventId: UUID
+  +deviceId: UUID
+  +status: String
+  +occurredAt: Instant
+}
+
+class CommandResult {
+  +eventId: UUID
+  +commandId: UUID
+  +deviceId: UUID
+  +status: String
+  +error: String
+}
+
+class TelemetryNormalizer {
+  +toMeasurements(msg: DeviceMessage, ctx: DeviceContext): List<Measurement>
+  +toStatus(msg: DeviceMessage, ctx: DeviceContext): DeviceStatusChanged
+}
+
+class EventPublisher {
+  +publish(m: Measurement)
+  +publish(s: DeviceStatusChanged)
+  +publish(r: CommandResult)
+}
+
+class IngressPipeline {
+  +handle(raw: RawMessage)
+}
+
+class CommandDispatcher {
+  +dispatch(cmd: Command)
+  +onAck(msg: DeviceMessage)
+}
+
+IngressPipeline --> DeviceAuthenticator
+IngressPipeline --> AdapterRegistry
+IngressPipeline --> TelemetryNormalizer
+IngressPipeline --> EventPublisher
+DeviceAuthenticator ..> DeviceContext
+AdapterRegistry o--> "*" ProtocolAdapter
+ProtocolAdapter <|.. MqttAdapter
+ProtocolAdapter <|.. PartnerHttpAdapter
+ProtocolAdapter ..> RawMessage
+ProtocolAdapter ..> DeviceMessage
+ProtocolAdapter ..> OutboundMessage
+DeviceMessage --> MessageKind
+DeviceMessage "1" --> "*" Reading
+TelemetryNormalizer ..> DeviceContext
+TelemetryNormalizer ..> Measurement
+TelemetryNormalizer ..> DeviceStatusChanged
+CommandDispatcher --> AdapterRegistry
+CommandDispatcher --> EventPublisher
+CommandDispatcher ..> Command
+CommandDispatcher ..> CommandResult
+@enduml

@@ -1,0 +1,27 @@
+@startuml 03-component-users
+!include <C4/C4_Component>
+
+title Component Diagram — Users & Subscriptions Service
+
+Container(gateway, "API Gateway", "Nginx / Kong")
+ContainerDb(db, "Users DB", "PostgreSQL")
+
+Container_Boundary(users, "Users & Subscriptions Service") {
+  Component(api, "REST Controller", "Spring MVC", "Registration, login, houses, rooms, subscriptions.")
+  Component(auth, "Authentication Component", "Spring Security, JWT", "Password verification, token issuing and validation.")
+  Component(accounts, "Accounts & Houses Service", "Spring Service", "Users, houses, rooms, access rights.")
+  Component(subs, "Subscription Service", "Spring Service", "Activation and renewal by a support agent, subscription status check.")
+  Component(repo, "Repository", "Spring Data JPA", "Users, houses, rooms, subscriptions.")
+}
+
+Rel(gateway, api, "User requests", "REST / JSON")
+Rel(api, auth, "Login, token validation")
+Rel(api, accounts, "Calls")
+Rel(api, subs, "Calls")
+Rel(auth, repo, "Reads users")
+Rel(accounts, repo, "Reads / writes")
+Rel(subs, repo, "Reads / writes")
+Rel(repo, db, "Reads / writes", "SQL")
+
+SHOW_LEGEND()
+@enduml

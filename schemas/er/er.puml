@@ -1,0 +1,125 @@
+@startuml er
+title ER Diagram — Warm House target system
+hide circle
+skinparam linetype ortho
+
+entity "users" as users {
+  * id : uuid <<PK>>
+  --
+  * email : varchar
+  * password_hash : varchar
+  * name : varchar
+  * created_at : timestamptz
+}
+
+entity "subscriptions" as subscriptions {
+  * id : uuid <<PK>>
+  --
+  * user_id : uuid <<FK>>
+  * plan : varchar
+  * status : varchar
+  * started_at : timestamptz
+  expires_at : timestamptz
+}
+
+entity "houses" as houses {
+  * id : uuid <<PK>>
+  --
+  * user_id : uuid <<FK>>
+  * name : varchar
+  * address : varchar
+  * timezone : varchar
+}
+
+entity "rooms" as rooms {
+  * id : uuid <<PK>>
+  --
+  * house_id : uuid <<FK>>
+  * name : varchar
+}
+
+entity "device_types" as device_types {
+  * id : uuid <<PK>>
+  --
+  * code : varchar
+  * name : varchar
+  * protocol : varchar
+  * capabilities : jsonb
+}
+
+entity "devices" as devices {
+  * id : uuid <<PK>>
+  --
+  * house_id : uuid <<FK>>
+  room_id : uuid <<FK>>
+  * device_type_id : uuid <<FK>>
+  * name : varchar
+  * serial_number : varchar
+  * status : varchar
+  connected_at : timestamptz
+  last_seen_at : timestamptz
+}
+
+entity "telemetry" as telemetry {
+  * id : bigint <<PK>>
+  --
+  * device_id : uuid <<FK>>
+  * metric : varchar
+  * value : double
+  * unit : varchar
+  * measured_at : timestamptz
+}
+
+entity "commands" as commands {
+  * id : uuid <<PK>>
+  --
+  * device_id : uuid <<FK>>
+  * type : varchar
+  payload : jsonb
+  * status : varchar
+  * issued_by : varchar
+  * issued_at : timestamptz
+  executed_at : timestamptz
+}
+
+entity "scenarios" as scenarios {
+  * id : uuid <<PK>>
+  --
+  * house_id : uuid <<FK>>
+  * name : varchar
+  * enabled : boolean
+  * trigger_type : varchar
+  condition : jsonb
+  schedule : varchar
+}
+
+entity "scenario_actions" as scenario_actions {
+  * id : uuid <<PK>>
+  --
+  * scenario_id : uuid <<FK>>
+  * device_id : uuid <<FK>>
+  * command_type : varchar
+  payload : jsonb
+  * order_no : int
+}
+
+entity "cameras" as cameras {
+  * id : uuid <<PK>>
+  --
+  * device_id : uuid <<FK>>
+  * stream_url : varchar
+}
+
+users ||--o{ subscriptions
+users ||--o{ houses
+houses ||--o{ rooms
+houses ||--o{ devices
+rooms |o--o{ devices
+device_types ||--o{ devices
+devices ||--o{ telemetry
+devices ||--o{ commands
+houses ||--o{ scenarios
+scenarios ||--o{ scenario_actions
+devices ||--o{ scenario_actions
+devices ||--o| cameras
+@enduml

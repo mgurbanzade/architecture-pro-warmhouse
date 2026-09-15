@@ -1,0 +1,219 @@
+openapi: 3.0.3
+info:
+  title: Users & Subscriptions Service — REST API
+  version: 1.0.0
+  description: |
+    Registration and login, user houses and rooms, subscription.
+    Subscriptions are activated and renewed by a support agent; there is no online payment in the system.
+servers:
+  - url: https://api.warmhouse.example/users/v1
+security:
+  - bearerAuth: []
+
+paths:
+  /auth/register:
+    post:
+      summary: Register a user
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RegisterRequest' }
+      responses:
+        '201':
+          description: User created, JWT issued
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '409':
+          description: E-mail is already taken
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /auth/login:
+    post:
+      summary: Login, JWT issuing
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthResponse' }
+        '401':
+          description: Invalid e-mail or password
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /houses:
+    get:
+      summary: User houses with rooms
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/House' }
+    post:
+      summary: Add a house with rooms
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/HouseInput' }
+      responses:
+        '201':
+          description: House created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/House' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+
+  /subscriptions/me:
+    get:
+      summary: Current user subscription
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Subscription' }
+        '404':
+          description: No subscription
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /subscriptions/{userId}:
+    parameters:
+      - { name: userId, in: path, required: true, schema: { type: string, format: uuid } }
+    put:
+      summary: Activate or renew a user subscription
+      description: Available to a support agent (`support` role in the JWT).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [plan, expiresAt]
+              properties:
+                plan: { type: string, example: basic }
+                expiresAt: { type: string, format: date-time }
+      responses:
+        '200':
+          description: Subscription is active
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Subscription' }
+        '403':
+          description: Insufficient permissions
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    NotFound:
+      description: Not found
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+  schemas:
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code: { type: string }
+        message: { type: string }
+    RegisterRequest:
+      type: object
+      required: [email, password, name]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, format: password, minLength: 8 }
+        name: { type: string }
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, format: password }
+    AuthResponse:
+      type: object
+      required: [accessToken, user]
+      properties:
+        accessToken: { type: string }
+        user: { $ref: '#/components/schemas/User' }
+    User:
+      type: object
+      required: [id, email, name]
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string, format: email }
+        name: { type: string }
+    RoomInput:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, example: Living room }
+    Room:
+      allOf:
+        - $ref: '#/components/schemas/RoomInput'
+        - type: object
+          required: [id]
+          properties:
+            id: { type: string, format: uuid }
+    HouseInput:
+      type: object
+      required: [name, address]
+      properties:
+        name: { type: string, example: Country house }
+        address: { type: string }
+        timezone: { type: string, example: Europe/Moscow }
+        rooms:
+          type: array
+          items: { $ref: '#/components/schemas/RoomInput' }
+    House:
+      type: object
+      required: [id, name, address, rooms]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        address: { type: string }
+        timezone: { type: string }
+        rooms:
+          type: array
+          items: { $ref: '#/components/schemas/Room' }
+    Subscription:
+      type: object
+      required: [id, userId, plan, status, startedAt, expiresAt]
+      properties:
+        id: { type: string, format: uuid }
+        userId: { type: string, format: uuid }
+        plan: { type: string, example: basic }
+        status: { type: string, enum: [active, expired] }
+        startedAt: { type: string, format: date-time }
+        expiresAt: { type: string, format: date-time }

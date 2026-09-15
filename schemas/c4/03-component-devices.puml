@@ -1,0 +1,36 @@
+@startuml 03-component-devices
+!include <C4/C4_Component>
+
+title Component Diagram — Device Service
+
+Container(gateway, "API Gateway", "Nginx / Kong")
+Container(scenarios, "Scenario Service", "Python, FastAPI")
+Container(device_gw, "Device Gateway", "Go")
+ContainerQueue(broker, "Message Broker", "Kafka")
+ContainerDb(db, "Devices DB", "PostgreSQL")
+
+Container_Boundary(devices, "Device Service") {
+  Component(api, "Device REST Controller", "Spring MVC", "Device CRUD, onboarding, commands from users and scenarios, device verification for the gateway.")
+  Component(registry, "Device Registry", "Spring Service", "Registration, binding to house and room, device types and capabilities, connectivity status.")
+  Component(commands, "Command Dispatcher", "Spring Service", "Validates a command against the type capabilities, stores it, hands it to the gateway, updates the result.")
+  Component(gwclient, "Device Gateway Client", "REST client", "Sends commands to the gateway.")
+  Component(consumer, "Device Event Consumer", "Kafka Consumer", "Reads device statuses and command results, updates the registry and commands.")
+  Component(repo, "Device Repository", "Spring Data JPA", "Stores devices, types and commands.")
+}
+
+Rel(gateway, api, "User requests", "REST / JSON")
+Rel(scenarios, api, "Device commands", "REST / JSON")
+Rel(device_gw, api, "Connecting device verification", "REST / JSON")
+Rel(api, registry, "Calls")
+Rel(api, commands, "Calls")
+Rel(registry, repo, "Reads / writes")
+Rel(commands, repo, "Stores commands and statuses")
+Rel(commands, gwclient, "Hands over the command")
+Rel(gwclient, device_gw, "Sends the command", "REST / JSON")
+Rel(broker, consumer, "Statuses and command results", "Kafka consume")
+Rel(consumer, registry, "Updates device status")
+Rel(consumer, commands, "Updates command result")
+Rel(repo, db, "Reads / writes", "SQL")
+
+SHOW_LEGEND()
+@enduml

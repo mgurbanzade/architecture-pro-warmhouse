@@ -18,13 +18,15 @@ import (
 type SensorHandler struct {
 	DB                 *db.DB
 	TemperatureService *services.TemperatureService
+	DeviceRegistry     *services.DeviceRegistryClient
 }
 
 // NewSensorHandler creates a new SensorHandler
-func NewSensorHandler(db *db.DB, temperatureService *services.TemperatureService) *SensorHandler {
+func NewSensorHandler(db *db.DB, temperatureService *services.TemperatureService, deviceRegistry *services.DeviceRegistryClient) *SensorHandler {
 	return &SensorHandler{
 		DB:                 db,
 		TemperatureService: temperatureService,
+		DeviceRegistry:     deviceRegistry,
 	}
 }
 
@@ -140,6 +142,12 @@ func (h *SensorHandler) CreateSensor(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
+	}
+
+	if err := h.DeviceRegistry.RegisterSensor(sensor); err != nil {
+		log.Printf("Failed to register sensor %d in device service: %v", sensor.ID, err)
+	} else if h.DeviceRegistry.Enabled() {
+		log.Printf("Registered sensor %d in device service as %s", sensor.ID, services.SerialNumber(sensor.ID))
 	}
 
 	c.JSON(http.StatusCreated, sensor)

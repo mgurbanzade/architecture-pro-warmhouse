@@ -1,0 +1,62 @@
+@startuml 02-containers
+!include <C4/C4_Container>
+LAYOUT_TOP_DOWN()
+
+title Container Diagram (To-Be) — Warm House
+
+Person(resident, "Resident", "Connects devices, configures scenarios, views telemetry and video.")
+Person(support, "Support Agent", "Activates subscriptions, helps users, sees the state of their devices.")
+
+System_Boundary(warmhouse, "Warm House") {
+  Container(web, "Web Application", "SPA", "Personal account: devices, telemetry, scenarios, video.")
+  Container(gateway, "API Gateway", "Nginx / Kong", "Single entry point: routing, JWT validation, rate limits.")
+
+  Container(users, "Users & Subscriptions Service", "Java, Spring Boot", "Accounts, houses, rooms, subscriptions, JWT issuing.")
+  ContainerDb(users_db, "Users DB", "PostgreSQL", "Users, houses, rooms, subscriptions.")
+
+  Container(devices, "Device Service", "Java, Spring Boot", "Device registry and device types, self-service onboarding, commands from users and scenarios.")
+  ContainerDb(devices_db, "Devices DB", "PostgreSQL", "Devices, types, commands.")
+  Container(device_gw, "Device Gateway", "Go", "Connection point for devices (MQTT, partner HTTP): protocol adapters, telemetry normalization, command delivery.")
+
+  Container(telemetry, "Telemetry Service", "Python, FastAPI", "Measurement storage, history, aggregates.")
+  ContainerDb(telemetry_db, "Telemetry DB", "TimescaleDB", "Measurement time series.")
+
+  Container(scenarios, "Scenario Service", "Python, FastAPI", "Event-command rules and schedules.")
+  ContainerDb(scenarios_db, "Scenarios DB", "PostgreSQL", "Scenarios, rules, run log.")
+
+  Container(video, "Video Surveillance Service", "Go", "Receives camera streams and serves live video to the browser.")
+  ContainerDb(video_db, "Video DB", "PostgreSQL", "Cameras and their streams.")
+
+  ContainerQueue(broker, "Message Broker", "Kafka", "Measurements, device statuses, command results.")
+}
+
+System_Ext(device, "Device", "Sensors, relays, cameras — including partner devices using standard protocols.")
+
+Rel(resident, web, "Uses", "HTTPS")
+Rel(support, web, "Uses", "HTTPS")
+Rel(web, gateway, "Calls API", "HTTPS / JSON")
+
+Rel(gateway, users, "Routes", "REST")
+Rel(gateway, devices, "Routes", "REST")
+Rel(gateway, telemetry, "Routes", "REST")
+Rel(gateway, scenarios, "Routes", "REST")
+Rel(gateway, video, "Routes", "REST")
+
+Rel(users, users_db, "Reads / writes", "SQL")
+Rel(devices, devices_db, "Reads / writes", "SQL")
+Rel(telemetry, telemetry_db, "Reads / writes", "SQL")
+Rel(scenarios, scenarios_db, "Reads / writes", "SQL")
+Rel(video, video_db, "Reads / writes", "SQL")
+
+Rel(devices, device_gw, "Sends device commands", "REST")
+Rel(device_gw, devices, "Verifies connecting device", "REST")
+Rel(device, device_gw, "Publishes telemetry and status, receives commands", "MQTT / HTTP")
+Rel(device_gw, broker, "Publishes normalized measurements, statuses, command results", "Kafka")
+Rel(broker, devices, "Device statuses, command results", "Kafka consume")
+Rel(broker, telemetry, "Measurements", "Kafka consume")
+Rel(broker, scenarios, "Measurements and device events", "Kafka consume")
+Rel(scenarios, devices, "Sends commands", "REST")
+Rel(device, video, "Camera video stream", "RTSP")
+
+SHOW_LEGEND()
+@enduml

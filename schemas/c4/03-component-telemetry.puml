@@ -1,0 +1,29 @@
+@startuml 03-component-telemetry
+!include <C4/C4_Component>
+
+title Component Diagram — Telemetry Service
+
+Container(gateway, "API Gateway", "Nginx / Kong")
+ContainerQueue(broker, "Message Broker", "Kafka")
+ContainerDb(db, "Telemetry DB", "TimescaleDB")
+
+Container_Boundary(telemetry, "Telemetry Service") {
+  Component(api, "Telemetry REST Controller", "FastAPI", "Latest values, history for a period, aggregates.")
+  Component(consumer, "Measurement Consumer", "Kafka Consumer", "Reads normalized measurements from the broker.")
+  Component(validator, "Measurement Validator", "Pydantic", "Checks format, units and ranges, drops duplicates.")
+  Component(writer, "Write Service", "Python", "Batch writes measurements to time series.")
+  Component(query, "Query Service", "Python", "Latest value, history for a period, hourly and daily aggregates.")
+  Component(repo, "Time Series Repository", "SQLAlchemy", "TimescaleDB access.")
+}
+
+Rel(gateway, api, "User requests", "REST / JSON")
+Rel(broker, consumer, "Measurements", "Kafka consume")
+Rel(consumer, validator, "Passes the measurement")
+Rel(validator, writer, "Validated measurements")
+Rel(api, query, "Calls")
+Rel(writer, repo, "Writes")
+Rel(query, repo, "Reads")
+Rel(repo, db, "Reads / writes", "SQL")
+
+SHOW_LEGEND()
+@enduml

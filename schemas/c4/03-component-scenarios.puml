@@ -1,0 +1,32 @@
+@startuml 03-component-scenarios
+!include <C4/C4_Component>
+
+title Component Diagram — Scenario Service
+
+Container(gateway, "API Gateway", "Nginx / Kong")
+ContainerQueue(broker, "Message Broker", "Kafka")
+Container(devices, "Device Service", "Java, Spring Boot")
+ContainerDb(db, "Scenarios DB", "PostgreSQL")
+
+Container_Boundary(scenarios, "Scenario Service") {
+  Component(api, "Scenario REST Controller", "FastAPI", "Scenario CRUD, enable and disable, manual run.")
+  Component(consumer, "Event Consumer", "Kafka Consumer", "Receives measurements and device events.")
+  Component(engine, "Rule Engine", "Python", "Matches an event against scenario conditions and produces commands.")
+  Component(scheduler, "Scheduler", "APScheduler", "Runs scenarios on a schedule.")
+  Component(devclient, "Device Service Client", "REST client", "Sends commands to devices.")
+  Component(repo, "Scenario Repository", "SQLAlchemy", "Scenarios, rules, run log.")
+}
+
+Rel(gateway, api, "User requests", "REST / JSON")
+Rel(broker, consumer, "Measurements and events", "Kafka consume")
+Rel(consumer, engine, "Passes the event")
+Rel(scheduler, engine, "Runs on schedule")
+Rel(api, engine, "Manual run")
+Rel(api, repo, "Reads / writes scenarios")
+Rel(engine, repo, "Reads rules, writes the run log")
+Rel(engine, devclient, "Commands")
+Rel(devclient, devices, "Sends commands", "REST / JSON")
+Rel(repo, db, "Reads / writes", "SQL")
+
+SHOW_LEGEND()
+@enduml

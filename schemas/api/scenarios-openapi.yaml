@@ -1,0 +1,157 @@
+openapi: 3.0.3
+info:
+  title: Scenario Service — REST API
+  version: 1.0.0
+  description: |
+    User automation scenarios: "if a measurement or device event satisfies a condition —
+    send commands to devices" and scheduled scenarios. The service reads measurements and events from the broker
+    and sends commands to the Device Service.
+servers:
+  - url: https://api.warmhouse.example/scenarios/v1
+security:
+  - bearerAuth: []
+
+paths:
+  /scenarios:
+    get:
+      summary: House scenarios
+      parameters:
+        - { name: houseId, in: query, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Scenario' }
+    post:
+      summary: Create a scenario
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ScenarioInput' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Scenario' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+
+  /scenarios/{scenarioId}:
+    parameters:
+      - $ref: '#/components/parameters/scenarioId'
+    put:
+      summary: Update a scenario (including enable or disable)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ScenarioInput' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Scenario' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      summary: Delete a scenario
+      responses:
+        '204': { description: Deleted }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /scenarios/{scenarioId}/run:
+    parameters:
+      - $ref: '#/components/parameters/scenarioId'
+    post:
+      summary: Run a scenario manually
+      responses:
+        '202':
+          description: Run accepted, commands sent to the Device Service
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ScenarioRun' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    scenarioId:
+      name: scenarioId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    NotFound:
+      description: Scenario not found
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+  schemas:
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code: { type: string }
+        message: { type: string }
+    Trigger:
+      type: object
+      required: [type]
+      description: Run condition — by measurement, by device event or by schedule
+      properties:
+        type: { type: string, enum: [telemetry, device_event, schedule] }
+        deviceId: { type: string, format: uuid, description: For telemetry and device_event }
+        metric: { type: string, example: temperature, description: For telemetry }
+        operator: { type: string, enum: [lt, lte, gt, gte, eq], description: For telemetry }
+        value: { type: number, example: 18, description: For telemetry }
+        event: { type: string, example: offline, description: For device_event }
+        cron: { type: string, example: "0 7 * * *", description: For schedule }
+    Action:
+      type: object
+      required: [deviceId, commandType]
+      properties:
+        deviceId: { type: string, format: uuid }
+        commandType: { type: string, example: turn_on }
+        payload: { type: object, additionalProperties: true }
+    ScenarioInput:
+      type: object
+      required: [houseId, name, trigger, actions]
+      properties:
+        houseId: { type: string, format: uuid }
+        name: { type: string, example: "Turn heating on when the living room is colder than 18" }
+        enabled: { type: boolean, default: true }
+        trigger: { $ref: '#/components/schemas/Trigger' }
+        actions:
+          type: array
+          minItems: 1
+          items: { $ref: '#/components/schemas/Action' }
+    Scenario:
+      allOf:
+        - $ref: '#/components/schemas/ScenarioInput'
+        - type: object
+          required: [id]
+          properties:
+            id: { type: string, format: uuid }
+            lastRunAt: { type: string, format: date-time, nullable: true }
+    ScenarioRun:
+      type: object
+      required: [id, scenarioId, startedAt, status]
+      properties:
+        id: { type: string, format: uuid }
+        scenarioId: { type: string, format: uuid }
+        startedAt: { type: string, format: date-time }
+        status: { type: string, enum: [running, done, failed] }
+        triggeredBy: { type: string, enum: [telemetry, device_event, schedule, manual] }

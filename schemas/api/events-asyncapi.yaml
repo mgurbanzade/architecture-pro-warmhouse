@@ -1,0 +1,112 @@
+asyncapi: 2.6.0
+info:
+  title: Warm House events (message broker)
+  version: 1.0.0
+  description: |
+    Asynchronous exchange between microservices over Kafka.
+    Events are published by the Device Gateway (after protocol parsing and normalization of device data);
+    they are consumed by the Telemetry Service, the Scenario Service and the Device Service.
+    In AsyncAPI 2.x terms: `publish` — who writes to the channel, `subscribe` — who reads.
+defaultContentType: application/json
+
+servers:
+  kafka:
+    url: kafka:9092
+    protocol: kafka
+    description: Kafka cluster inside the system
+    security:
+      - saslScram: []
+
+channels:
+  telemetry.measurements:
+    description: Normalized device measurements. Message key — deviceId.
+    publish:
+      operationId: publishMeasurement
+      summary: The Device Gateway publishes a measurement
+      message:
+        $ref: '#/components/messages/Measurement'
+    subscribe:
+      operationId: consumeMeasurement
+      summary: The Telemetry Service stores the measurement; the Scenario Service checks conditions
+      message:
+        $ref: '#/components/messages/Measurement'
+
+  devices.status:
+    description: Device connectivity status change (online, offline, error). Key — deviceId.
+    publish:
+      operationId: publishDeviceStatus
+      summary: The Device Gateway publishes a status change
+      message:
+        $ref: '#/components/messages/DeviceStatusChanged'
+    subscribe:
+      operationId: consumeDeviceStatus
+      summary: The Device Service updates the registry status; the Scenario Service reacts to the event
+      message:
+        $ref: '#/components/messages/DeviceStatusChanged'
+
+  devices.command-results:
+    description: Result of a command executed by a device. Key — deviceId.
+    publish:
+      operationId: publishCommandResult
+      summary: The Device Gateway publishes a command result
+      message:
+        $ref: '#/components/messages/CommandResult'
+    subscribe:
+      operationId: consumeCommandResult
+      summary: The Device Service updates the command status; the Scenario Service records the result in the run log
+      message:
+        $ref: '#/components/messages/CommandResult'
+
+components:
+  securitySchemes:
+    saslScram:
+      type: scramSha256
+      description: Service authentication in Kafka (SASL/SCRAM)
+  messages:
+    Measurement:
+      name: Measurement
+      title: Device measurement
+      payload:
+        $ref: '#/components/schemas/Measurement'
+    DeviceStatusChanged:
+      name: DeviceStatusChanged
+      title: Device status change
+      payload:
+        $ref: '#/components/schemas/DeviceStatusChanged'
+    CommandResult:
+      name: CommandResult
+      title: Command result
+      payload:
+        $ref: '#/components/schemas/CommandResult'
+
+  schemas:
+    Measurement:
+      type: object
+      required: [eventId, deviceId, houseId, metric, value, unit, measuredAt]
+      properties:
+        eventId: { type: string, format: uuid }
+        deviceId: { type: string, format: uuid }
+        houseId: { type: string, format: uuid }
+        metric: { type: string, example: temperature }
+        value: { type: number, example: 21.4 }
+        unit: { type: string, example: "°C" }
+        measuredAt: { type: string, format: date-time }
+    DeviceStatusChanged:
+      type: object
+      required: [eventId, deviceId, houseId, status, occurredAt]
+      properties:
+        eventId: { type: string, format: uuid }
+        deviceId: { type: string, format: uuid }
+        houseId: { type: string, format: uuid }
+        status: { type: string, enum: [online, offline, error] }
+        occurredAt: { type: string, format: date-time }
+    CommandResult:
+      type: object
+      required: [eventId, commandId, deviceId, status, occurredAt]
+      properties:
+        eventId: { type: string, format: uuid }
+        commandId: { type: string, format: uuid }
+        deviceId: { type: string, format: uuid }
+        status: { type: string, enum: [done, failed] }
+        error: { type: [string, "null"] }
+        occurredAt: { type: string, format: date-time }
