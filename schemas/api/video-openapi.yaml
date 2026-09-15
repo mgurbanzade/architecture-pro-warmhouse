@@ -1,0 +1,79 @@
+openapi: 3.0.3
+info:
+  title: Video Surveillance Service — REST API
+  version: 1.0.0
+  description: |
+    House cameras and live stream links for remote monitoring. No recordings are kept.
+    Video streams themselves go outside REST: RTSP from cameras, WebRTC/HLS to the browser.
+servers:
+  - url: https://api.warmhouse.example/video/v1
+security:
+  - bearerAuth: []
+
+paths:
+  /cameras:
+    get:
+      summary: House cameras
+      parameters:
+        - { name: houseId, in: query, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Camera' }
+
+  /cameras/{cameraId}/stream:
+    parameters:
+      - { name: cameraId, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      summary: Temporary live stream link
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/StreamInfo' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '503':
+          description: Camera is offline
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  responses:
+    NotFound:
+      description: Camera not found
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+  schemas:
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code: { type: string }
+        message: { type: string }
+    Camera:
+      type: object
+      required: [id, deviceId, name, status]
+      properties:
+        id: { type: string, format: uuid }
+        deviceId: { type: string, format: uuid, description: Device in the Device Service }
+        name: { type: string, example: Backyard }
+        status: { type: string, enum: [offline, online] }
+    StreamInfo:
+      type: object
+      required: [url, protocol, expiresAt]
+      properties:
+        url: { type: string, format: uri }
+        protocol: { type: string, enum: [hls, webrtc] }
+        expiresAt: { type: string, format: date-time }

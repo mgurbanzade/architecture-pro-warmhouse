@@ -1,221 +1,412 @@
 {
-    "info": {
-        "_postman_id": "f8e3a123-4567-89ab-cdef-0123456789ab",
-        "name": "Smart Home Sensor API",
-        "description": "A collection for testing the Smart Home Sensor Management API",
-        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  "info": {
+    "_postman_id": "f8e3a123-4567-89ab-cdef-0123456789ab",
+    "name": "Smart Home Sensor API",
+    "description": "A collection for testing the Smart Home Sensor Management API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8080/health",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "health"
+          ]
+        },
+        "description": "Check if the API is running"
+      },
+      "response": []
     },
-    "item": [
-        {
-            "name": "Health Check",
-            "request": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                    "raw": "http://localhost:8080/health",
-                    "protocol": "http",
-                    "host": [
-                        "localhost"
-                    ],
-                    "port": "8080",
-                    "path": [
-                        "health"
-                    ]
-                },
-                "description": "Check if the API is running"
-            },
-            "response": []
+    {
+      "name": "Get All Sensors",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8080/api/v1/sensors",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "v1",
+            "sensors"
+          ]
         },
-        {
-            "name": "Get All Sensors",
-            "request": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                    "raw": "http://localhost:8080/api/v1/sensors",
-                    "protocol": "http",
-                    "host": [
-                        "localhost"
-                    ],
-                    "port": "8080",
-                    "path": [
-                        "api",
-                        "v1",
-                        "sensors"
-                    ]
-                },
-                "description": "Retrieve all sensors"
-            },
-            "response": []
+        "description": "Retrieve all sensors"
+      },
+      "response": []
+    },
+    {
+      "name": "Get Sensor by ID",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8080/api/v1/sensors/1",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "v1",
+            "sensors",
+            "1"
+          ]
         },
-        {
-            "name": "Get Sensor by ID",
-            "request": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                    "raw": "http://localhost:8080/api/v1/sensors/1",
-                    "protocol": "http",
-                    "host": [
-                        "localhost"
-                    ],
-                    "port": "8080",
-                    "path": [
-                        "api",
-                        "v1",
-                        "sensors",
-                        "1"
-                    ]
-                },
-                "description": "Retrieve a specific sensor by ID"
-            },
-            "response": []
+        "description": "Retrieve a specific sensor by ID"
+      },
+      "response": []
+    },
+    {
+      "name": "Create Sensor",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"name\": \"Living Room Temperature\",\n    \"type\": \"temperature\",\n    \"location\": \"Living Room\",\n    \"unit\": \"°C\"\n}"
         },
-        {
-            "name": "Create Sensor",
-            "request": {
-                "method": "POST",
-                "header": [
-                    {
-                        "key": "Content-Type",
-                        "value": "application/json"
-                    }
-                ],
-                "body": {
-                    "mode": "raw",
-                    "raw": "{\n    \"name\": \"Living Room Temperature\",\n    \"type\": \"temperature\",\n    \"location\": \"Living Room\",\n    \"unit\": \"°C\"\n}"
-                },
-                "url": {
-                    "raw": "http://localhost:8080/api/v1/sensors",
-                    "protocol": "http",
-                    "host": [
-                        "localhost"
-                    ],
-                    "port": "8080",
-                    "path": [
-                        "api",
-                        "v1",
-                        "sensors"
-                    ]
-                },
-                "description": "Create a new sensor"
-            },
-            "response": []
+        "url": {
+          "raw": "http://localhost:8080/api/v1/sensors",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "v1",
+            "sensors"
+          ]
         },
-        {
-            "name": "Update Sensor",
-            "request": {
-                "method": "PUT",
-                "header": [
-                    {
-                        "key": "Content-Type",
-                        "value": "application/json"
-                    }
-                ],
-                "body": {
-                    "mode": "raw",
-                    "raw": "{\n    \"name\": \"Updated Living Room Temperature\",\n    \"type\": \"temperature\",\n    \"location\": \"Living Room\",\n    \"unit\": \"°C\"\n}"
-                },
-                "url": {
-                    "raw": "http://localhost:8080/api/v1/sensors/1",
-                    "protocol": "http",
-                    "host": [
-                        "localhost"
-                    ],
-                    "port": "8080",
-                    "path": [
-                        "api",
-                        "v1",
-                        "sensors",
-                        "1"
-                    ]
-                },
-                "description": "Update an existing sensor"
-            },
-            "response": []
+        "description": "Create a new sensor"
+      },
+      "response": []
+    },
+    {
+      "name": "Update Sensor",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"name\": \"Updated Living Room Temperature\",\n    \"type\": \"temperature\",\n    \"location\": \"Living Room\",\n    \"unit\": \"°C\"\n}"
         },
-        {
-            "name": "Delete Sensor",
-            "request": {
-                "method": "DELETE",
-                "header": [],
-                "url": {
-                    "raw": "http://localhost:8080/api/v1/sensors/1",
-                    "protocol": "http",
-                    "host": [
-                        "localhost"
-                    ],
-                    "port": "8080",
-                    "path": [
-                        "api",
-                        "v1",
-                        "sensors",
-                        "1"
-                    ]
-                },
-                "description": "Delete a sensor"
-            },
-            "response": []
+        "url": {
+          "raw": "http://localhost:8080/api/v1/sensors/1",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "v1",
+            "sensors",
+            "1"
+          ]
         },
+        "description": "Update an existing sensor"
+      },
+      "response": []
+    },
+    {
+      "name": "Delete Sensor",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8080/api/v1/sensors/1",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "v1",
+            "sensors",
+            "1"
+          ]
+        },
+        "description": "Delete a sensor"
+      },
+      "response": []
+    },
+    {
+      "name": "Update Sensor Value",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"value\": 22.5,\n    \"status\": \"active\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8080/api/v1/sensors/1/value",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "v1",
+            "sensors",
+            "1",
+            "value"
+          ]
+        },
+        "description": "Update a sensor's value and status"
+      },
+      "response": []
+    },
+    {
+      "name": "Task 6 - Microservices",
+      "item": [
         {
-            "name": "Update Sensor Value",
-            "request": {
-                "method": "PATCH",
-                "header": [
-                    {
-                        "key": "Content-Type",
-                        "value": "application/json"
-                    }
-                ],
-                "body": {
-                    "mode": "raw",
-                    "raw": "{\n    \"value\": 22.5,\n    \"status\": \"active\"\n}"
-                },
-                "url": {
-                    "raw": "http://localhost:8080/api/v1/sensors/1/value",
-                    "protocol": "http",
-                    "host": [
-                        "localhost"
-                    ],
-                    "port": "8080",
-                    "path": [
-                        "api",
-                        "v1",
-                        "sensors",
-                        "1",
-                        "value"
-                    ]
-                },
-                "description": "Update a sensor's value and status"
-            },
-            "response": []
-        }
-    ],
-    "event": [
-        {
-            "listen": "prerequest",
-            "script": {
-                "type": "text/javascript",
-                "exec": [
-                    ""
-                ]
+          "name": "Device Service - Device Types",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8083/device-types",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8083",
+              "path": [
+                "device-types"
+              ]
             }
+          },
+          "response": []
         },
         {
-            "listen": "test",
-            "script": {
-                "type": "text/javascript",
-                "exec": [
-                    ""
-                ]
+          "name": "Device Service - Get Devices (monolith house)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8083/devices?houseId=00000000-0000-0000-0000-000000000001",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8083",
+              "path": [
+                "devices"
+              ],
+              "query": [
+                {
+                  "key": "houseId",
+                  "value": "00000000-0000-0000-0000-000000000001"
+                }
+              ]
             }
-        }
-    ],
-    "variable": [
+          },
+          "response": []
+        },
         {
-            "key": "baseUrl",
-            "value": "http://localhost:8080",
-            "type": "string"
+          "name": "Device Service - Register Heating Module",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8083/devices",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8083",
+              "path": [
+                "devices"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"houseId\": \"00000000-0000-0000-0000-000000000001\",\n    \"typeCode\": \"heating\",\n    \"serialNumber\": \"WH-HEAT-000123\",\n    \"name\": \"Living room heating\"\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Device Service - Send Command (set deviceId variable)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8083/devices/{{deviceId}}/commands",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8083",
+              "path": [
+                "devices",
+                "{{deviceId}}",
+                "commands"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"type\": \"turn_on\"\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Telemetry - Latest for monolith sensor 1",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8082/telemetry/monolith-sensor-1/latest",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8082",
+              "path": [
+                "telemetry",
+                "monolith-sensor-1",
+                "latest"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Telemetry - Compat: /temperature/1 (monolith format)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8082/temperature/1",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8082",
+              "path": [
+                "temperature",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Telemetry - Aggregate by hour",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8082/telemetry/monolith-sensor-1/aggregate?metric=temperature&period=hour&from=2026-01-01T00:00:00Z&to=2030-01-01T00:00:00Z",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8082",
+              "path": [
+                "telemetry",
+                "monolith-sensor-1",
+                "aggregate"
+              ],
+              "query": [
+                {
+                  "key": "metric",
+                  "value": "temperature"
+                },
+                {
+                  "key": "period",
+                  "value": "hour"
+                },
+                {
+                  "key": "from",
+                  "value": "2026-01-01T00:00:00Z"
+                },
+                {
+                  "key": "to",
+                  "value": "2030-01-01T00:00:00Z"
+                }
+              ]
+            }
+          },
+          "response": []
         }
-    ]
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "deviceId",
+      "value": ""
+    }
+  ]
 }

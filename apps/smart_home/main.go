@@ -45,8 +45,18 @@ func main() {
 	// API routes
 	apiRoutes := router.Group("/api/v1")
 
+	deviceRegistry := services.NewDeviceRegistryClient(
+		getEnv("DEVICE_SERVICE_URL", ""),
+		getEnv("DEVICE_SERVICE_HOUSE_ID", "00000000-0000-0000-0000-000000000001"),
+	)
+	if deviceRegistry.Enabled() {
+		log.Printf("Device registry client initialized with URL: %s\n", deviceRegistry.BaseURL)
+	} else {
+		log.Println("Device registry client disabled (DEVICE_SERVICE_URL is empty)")
+	}
+
 	// Register sensor routes
-	sensorHandler := handlers.NewSensorHandler(database, temperatureService)
+	sensorHandler := handlers.NewSensorHandler(database, temperatureService, deviceRegistry)
 	sensorHandler.RegisterRoutes(apiRoutes)
 
 	// Start server

@@ -1,0 +1,25 @@
+@startuml 03-component-video
+!include <C4/C4_Component>
+
+title Component Diagram — Video Surveillance Service
+
+Container(gateway, "API Gateway", "Nginx / Kong")
+System_Ext(camera, "Device (camera)")
+ContainerDb(db, "Video DB", "PostgreSQL")
+
+Container_Boundary(video, "Video Surveillance Service") {
+  Component(api, "Camera REST Controller", "Go, net/http", "Camera list and live stream link.")
+  Component(ingest, "Stream Receiver", "RTSP client", "Connects to cameras and receives the stream.")
+  Component(streamer, "Stream Distributor", "WebRTC / HLS", "Serves the live stream to the user's browser.")
+  Component(repo, "Camera Repository", "Go, pgx", "Cameras and their streams.")
+}
+
+Rel(gateway, api, "User requests", "REST / JSON")
+Rel(camera, ingest, "Video stream", "RTSP")
+Rel(ingest, streamer, "Live stream")
+Rel(api, streamer, "Requests a stream link")
+Rel(api, repo, "Reads cameras")
+Rel(repo, db, "Reads / writes", "SQL")
+
+SHOW_LEGEND()
+@enduml

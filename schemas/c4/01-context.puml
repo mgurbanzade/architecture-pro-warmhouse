@@ -1,0 +1,18 @@
+@startuml 01-context
+!include <C4/C4_Context>
+
+title System Context (As-Is) — Warm House
+
+Person(resident, "Resident", "Homeowner with a connected heating module. ~100 web clients.")
+Person(technician, "Installation Technician", "Visits the house and connects the heating module to the system.")
+
+System(warmhouse, "Warm House", "Go + PostgreSQL monolith. Lets users control heating and check the temperature at home.")
+
+System_Ext(device, "Device", "Device in the house: reports temperature and accepts commands. ~100 connected. Never calls the system itself.")
+
+Rel(resident, warmhouse, "Checks temperature, controls heating", "HTTPS / REST, web client")
+Rel(technician, warmhouse, "Registers and configures devices", "HTTPS / REST")
+Rel(warmhouse, device, "Requests temperature, changes state", "HTTP, synchronous, server → device only")
+
+SHOW_LEGEND()
+@enduml

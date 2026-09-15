@@ -1,0 +1,33 @@
+server:
+  port: ${SERVER_PORT:8083}
+
+spring:
+  application:
+    name: device-service
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/devices}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+  kafka:
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: device-service
+      auto-offset-reset: earliest
+    producer:
+      properties:
+        max.block.ms: 2000
+    listener:
+      missing-topics-fatal: false
+
+app:
+  topics:
+    measurements: ${APP_TOPIC_MEASUREMENTS:telemetry.measurements}
+    commands: ${APP_TOPIC_COMMANDS:devices.commands}
+
+logging:
+  level:
+    org.apache.kafka: WARN

@@ -1,0 +1,132 @@
+openapi: 3.0.3
+info:
+  title: Device Gateway — internal REST API
+  version: 1.0.0
+  description: |
+    Internal API of the Device Gateway, not exposed through the API Gateway.
+    Called by the Device Service (command delivery, connection state) and by partner devices
+    without MQTT (telemetry intake over HTTP). Measurements, statuses and command results are published
+    by the gateway to the broker (see AsyncAPI).
+servers:
+  - url: http://device-gateway:8090/v1
+
+paths:
+  /commands:
+    post:
+      summary: Deliver a command to a device
+      description: The gateway picks an adapter by the device protocol and sends the command; if the device is offline the command waits for it to connect. The result arrives as a `devices.command-results` event.
+      security:
+        - internalToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CommandDelivery' }
+      responses:
+        '202':
+          description: Command accepted — sent (`sent`) or queued until the device connects (`queued`)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DeliveryStatus' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+
+  /connections/{deviceSerial}:
+    parameters:
+      - { name: deviceSerial, in: path, required: true, schema: { type: string } }
+    get:
+      summary: Whether the device is connected to the gateway
+      security:
+        - internalToken: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ConnectionState' }
+        '404':
+          description: Device unknown to the gateway
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /partner/{protocol}/telemetry:
+    parameters:
+      - { name: protocol, in: path, required: true, description: Partner protocol code, schema: { type: string, example: acme-v1 } }
+    post:
+      summary: Accept partner device telemetry over HTTP
+      description: The body is in the partner protocol format; parsing is done by the matching adapter.
+      security:
+        - deviceToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '202': { description: Accepted for processing }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401':
+          description: Invalid device token
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '404':
+          description: Protocol not supported
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+components:
+  securitySchemes:
+    internalToken:
+      type: apiKey
+      in: header
+      name: X-Internal-Token
+      description: Service-to-service call token
+    deviceToken:
+      type: apiKey
+      in: header
+      name: X-Device-Token
+      description: Device token issued on connect
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+  schemas:
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code: { type: string }
+        message: { type: string }
+    CommandDelivery:
+      type: object
+      required: [commandId, deviceId, deviceSerial, protocol, type]
+      properties:
+        commandId: { type: string, format: uuid }
+        deviceId: { type: string, format: uuid }
+        deviceSerial: { type: string, example: WH-HEAT-000123 }
+        protocol: { type: string, example: mqtt }
+        type: { type: string, example: turn_on }
+        payload:
+          type: object
+          additionalProperties: true
+    DeliveryStatus:
+      type: object
+      required: [commandId, status]
+      properties:
+        commandId: { type: string, format: uuid }
+        status: { type: string, enum: [queued, sent] }
+        updatedAt: { type: string, format: date-time }
+    ConnectionState:
+      type: object
+      required: [deviceSerial, connected]
+      properties:
+        deviceSerial: { type: string }
+        connected: { type: boolean }
+        protocol: { type: string, nullable: true }
+        lastSeenAt: { type: string, format: date-time, nullable: true }
